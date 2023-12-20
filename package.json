@@ -1,0 +1,40 @@
+{
+  "name": "telegram-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rimraf dist && babel src --out-dir dist  --copy-files",
+    "start": "node dist/app.js",
+    "dev": "nodemon --exec babel-node src/app.js"
+  },
+  "dependencies": {
+    "apollo-boost": "^0.4.9",
+    "apollo-cache-inmemory": "^1.6.6",
+    "apollo-link-http": "^1.5.17",
+    "cross-fetch": "^4.0.0",
+    "dotenv": "^16.3.1",
+    "ethers": "^5.7.2",
+    "ethers-multicall": "^0.2.3",
+    "graphql": "^16.8.1",
+    "graphql-tag": "^2.12.6",
+    "moralis": "^2.23.2",
+    "viem": "^1.20.3",
+    "grammy": "^1.19.2",
+    "wallet-address-validator": "^0.2.4"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.20.7",
+    "@babel/core": "^7.20.12",
+    "@babel/node": "^7.20.7",
+    "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
+    "@babel/preset-env": "^7.20.2",
+    "nodemon": "^2.0.20",
+    "rimraf": "^4.1.2"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
