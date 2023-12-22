@@ -143,6 +143,7 @@ const getSwapV2 = async (trader_address) => {
             if (log.topic0 == '0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822') {
                 // addressList.push(log.address);
                 logList.push(log);
+
             }
         })
     })
@@ -168,6 +169,7 @@ const getSwapV2 = async (trader_address) => {
     let decimalListRes2 = []
 
     // console.log(`logList::`, logList[0]);
+    console.log(123)
 
     logList.map((log, key) => {
 
@@ -198,8 +200,8 @@ const getSwapV2 = async (trader_address) => {
         if (transListRes1[key].toLowerCase() == weth || transListRes2[key].toLowerCase() == weth) {
             let totalUsdAmount = 0;
             let amount0In = BigInt('0x' + item.data.slice(2).slice(0, 64))
-            let amount0Out = BigInt('0x' + item.data.slice(2).slice(64, 128))
-            let amount1In = BigInt('0x' + item.data.slice(2).slice(128, 192))
+            let amount1In = BigInt('0x' + item.data.slice(2).slice(64, 128))
+            let amount0Out = BigInt('0x' + item.data.slice(2).slice(128, 192))
             let amount1Out = BigInt('0x' + item.data.slice(2).slice(192, 256))
 
             if (transListRes1[key].toLowerCase() == weth) {
@@ -228,12 +230,11 @@ const getSwapV2 = async (trader_address) => {
                     }
                 },
                 amount0In: formatUnits(amount0In, decimalListRes1[key]).toString(),
-                amount1In: formatUnits(amount0Out, decimalListRes2[key]).toString(),
-                amount0Out: formatUnits(amount1In, decimalListRes1[key]).toString(),
+                amount1In: formatUnits(amount1In, decimalListRes2[key]).toString(),
+                amount0Out: formatUnits(amount0Out, decimalListRes1[key]).toString(),
                 amount1Out: formatUnits(amount1Out, decimalListRes2[key]).toString(),
                 amountUSD: totalUsdAmount
             })
-
         }
     })
 
@@ -241,7 +242,7 @@ const getSwapV2 = async (trader_address) => {
 }
 
 const getSwapV3 = async (trader_address) => {
-    const from = Math.floor(Date.now() / 1000 - 24 * 3600 * 60);
+    const from = Math.floor(Date.now() / 1000 - 24 * 3600 * 30);
     let skip = 0
     const step = 1000
     let swaps = []
@@ -332,7 +333,8 @@ const get_portfolio = async (address) => {
         let tokenListFinal = [];
 
         let tokenPriceList = [];
-        let tokenPriceListRes = [];
+        let addressList = [];
+        // let block_number = (await provider.getBlock()).number;
         response.raw.forEach((item) => {
             if (!item.possible_spam) {
                 tokenList.push({
@@ -341,16 +343,41 @@ const get_portfolio = async (address) => {
                     decimals: item.decimals,
                     balance: item.balance
                 })
-                tokenPriceList.push(get_token_usd_price(item.token_address, "0x1"));
+                // tokenPriceList.push(get_token_usd_price(item.token_address, "0x1"));
+                addressList.push({
+                    token_address: item.token_address,
+                    to_block: 16314545
+                });
             }
         })
-        tokenPriceListRes = await Promise.all(tokenPriceList);
+
+
+
+        const options = {
+            method: 'POST',
+            headers: {
+                accept: 'application/json',
+                'content-type': 'application/json',
+                'X-API-Key': process.env.moralis_key
+            },
+            body: JSON.stringify({
+                "tokens": addressList
+            })
+        };
+
+        let res = await fetch('https://deep-index.moralis.io/api/v2.2/erc20/prices?chain=eth&include=percent_change', options)
+        let priceList = await res.json();
+
+        
+
         tokenList.forEach((item, key) => {
             tokenListFinal.push({
                 ...item,
-                amount: (Number(formatUnits(BigInt(item.balance), item.decimals)) * (tokenPriceListRes[key] > 60000 ? 0 : tokenPriceListRes[key]))
+                amount: (Number(formatUnits(BigInt(item.balance), item.decimals)) * (priceList[key]  ? priceList[key].usdPrice : 0 ))
             })
         })
+
+        // console.log(`tokenList::`, tokenList)
 
         /**
          *  get Eth balace of wallet
@@ -360,6 +387,7 @@ const get_portfolio = async (address) => {
             address: address,
             chain: "0x1",
         })
+
         if (Number(formatEther(response1.raw.balance)) > 0) {
             tokenListFinal.push({
                 token_address: '',
@@ -375,13 +403,14 @@ const get_portfolio = async (address) => {
             sumUsd = sumUsd + item.amount;
         })
 
+
         return {
             sumUsd,
             ethBalance: Number(formatEther(response1.raw.balance))
         }
 
     } catch (err) {
-
+        console.log(`get portfolio err::`, err);
         return [];
 
     }
@@ -389,7 +418,6 @@ const get_portfolio = async (address) => {
 
 const getTrading = async (trader_address, version) => {
 
-    // const books = await getSwaps(trader_address, version);
     let books;
     if (version == 2) {
         books = await getSwapV2(trader_address);
@@ -411,14 +439,41 @@ const getTrading = async (trader_address, version) => {
 
     for (let i = books.length - 1; i >= 0; i--) {
         const tr = books[i];
-        console.log(`books::`, books[i]);
         let tradingAmount, usdAmount, ethAmount, side, rate, base_symbol, symbol_name, ethRate, position;
         usdAmount = Number(tr.amountUSD);
+
+        // if (version == 2) {
+        //     base_symbol = tr.pair.token0.id.toLowerCase() != weth ? tr.pair.token0.id : tr.pair.token1.id;
+        //     symbol_name = tr.pair.token0.id.toLowerCase() != weth ? tr.pair.token0.symbol : tr.pair.token1.symbol;
+        //     if (tr.pair.token0.id.toLowerCase() == base_symbol) {//token0
+        //         if (tr.amount0In > 0) {
+        //             side = 'sell';
+        //             tradingAmount = tr.amount0In;
+        //             ethAmount = tr.amount1Out;
+        //         } else {
+        //             side = 'buy';
+        //             tradingAmount = tr.amount0Out;
+        //             ethAmount = tr.amount1In;
+        //         }
+        //     } else {//token1
+        //         if (tr.amount1In > 0) {
+        //             side = 'sell';
+        //             tradingAmount = tr.amount1In;
+        //             ethAmount = tr.amount0Out;
+        //         } else {
+        //             side = 'buy';
+        //             tradingAmount = tr.amount1Out;
+        //             ethAmount = tr.amount0In;
+        //         }
+        //     }
+        // }
         if (version == 2) {
+
             base_symbol = tr.pair.token0.id.toLowerCase() != weth ? tr.pair.token0.id : tr.pair.token1.id;
             symbol_name = tr.pair.token0.id.toLowerCase() != weth ? tr.pair.token0.symbol : tr.pair.token1.symbol;
-            if (tr.pair.token0.id.toLowerCase() == base_symbol) {//token0
-                if (tr.amount0In > 0) {
+            if (tr.pair.token0.id == base_symbol) {//token0
+
+                if (Number(tr.amount1Out) > 0) {
                     side = 'sell';
                     tradingAmount = tr.amount0In;
                     ethAmount = tr.amount1Out;
@@ -428,7 +483,7 @@ const getTrading = async (trader_address, version) => {
                     ethAmount = tr.amount1In;
                 }
             } else {//token1
-                if (tr.amount1In > 0) {
+                if (Number(tr.amount0Out) > 0) {
                     side = 'sell';
                     tradingAmount = tr.amount1In;
                     ethAmount = tr.amount0Out;
@@ -438,10 +493,11 @@ const getTrading = async (trader_address, version) => {
                     ethAmount = tr.amount0In;
                 }
             }
-        } else {
+        }
+        else {
             base_symbol = tr.token0.id.toLowerCase() != weth ? tr.token0.id : tr.token1.id;
             symbol_name = tr.token0.id.toLowerCase() != weth ? tr.token0.symbol : tr.token1.symbol;
-            if (tr.token0.id.toLowerCase() == base_symbol) {//token0
+            if (tr.token0.id == base_symbol) {//token0
                 if (tr.amount0 > 0) {
                     side = 'sell';
                     tradingAmount = tr.amount0;
@@ -464,6 +520,7 @@ const getTrading = async (trader_address, version) => {
             }
 
         }
+
         ethAmount = Number(ethAmount);
         tradingAmount = Number(tradingAmount);
         rate = ethAmount / tradingAmount;
@@ -471,7 +528,15 @@ const getTrading = async (trader_address, version) => {
 
         position = positions[symbol_name]
 
+        if (symbol_name == "PEER") {
+            console.log(`position::`, positions[symbol_name])
+        }
+
+        // console.log(`${i}::::: ${side}:::: ${ethAmount}::: ${tradingAmount} ::: ${rate} :::`);
+        // console.log(`${tr.amount0In}::::: ${tr.amount0Out}:::: ${tr.amount1In}::: ${tr.amount1Out} ::`);
+
         if (stable_coin[base_symbol]) continue;
+
         if (side == "buy") {
             totalBuy++;
             let cum_quote = (position?.balance) ? position.avg * position.balance : 0;
@@ -494,7 +559,11 @@ const getTrading = async (trader_address, version) => {
 
         }
         else {
+            if (symbol_name == "PEER") {
+                console.log(`sell position::`, positions[base_symbol])
+            }
             if (position?.balance && position?.balance > tradingAmount) {
+                console.log(`not here???`);
                 const open_price = position.avg;
                 const open_time = position.open_time
                 const close_time = tr.timestamp
@@ -535,10 +604,7 @@ const getTrading = async (trader_address, version) => {
                 }
             }
         }
-
     }
-
-
 
     const totalTrades = trades.length;
     //winCounter + lossCounter;

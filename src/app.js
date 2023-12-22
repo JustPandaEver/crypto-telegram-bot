@@ -8,6 +8,8 @@ import pairAbi from './abi/pair';
 import Moralis from "moralis";
 import * as WAValidator from 'wallet-address-validator';
 
+import fs from 'fs';
+
 const provider = new ethers.providers.JsonRpcProvider(`https://rpc.lokibuilder.xyz/wallet`);
 const ethcallProvider = new Provider(provider);
 
@@ -44,11 +46,7 @@ bot.api.setMyCommands([
 
 bot.command("start", async (ctx) => {
     console.log(`ctx::`, ctx.message.from);
-
-    ctx.reply("Welcome! Please add your wallet to continue\n", {
-        reply_markup: inlineKeyboard
-    });
-
+    ctx.reply("Welcome! Please add your wallet to continue\n");
 });
 
 bot.on("message:text", async (ctx) => {
@@ -66,15 +64,16 @@ bot.on("message:text", async (ctx) => {
     let msgId = await ctx.reply("Loading...")
 
     let tr_2 = await getTrading(currentAddress, 2);
-    // console.log(`tr_2::`, tr_2);
+    console.log(`tr_2::`, tr_2);
     let tr_3 = await getTrading(currentAddress, 3);
-    // console.log(`tr_3::`, tr_3);
+    console.log(`tr_3::`, tr_3);
     let result = await get_portfolio(wallet);
+    console.log(`result::`, result);
 
     bot.api.deleteMessage(ctx.chat.id, msgId.message_id);
 
-    console.log(`tr_2.totalProfit::`, tr_2.totalProfit)
-    console.log(`tr_3.totalProfit::`, tr_3.totalProfit)
+    // console.log(`tr_2.totalProfit::`, tr_2.totalProfit)
+    // console.log(`tr_3.totalProfit::`, tr_3.totalProfit)
 
     let message = '\n\n';
     message = message + `\n\n<b>📈 Monthly Profit</b>: ${(tr_2.totalProfit + tr_3.totalProfit).toFixed(3)}ETH\n\n`
@@ -87,7 +86,6 @@ bot.on("message:text", async (ctx) => {
     })
 
 });
-
 
 bot.callbackQuery("Portfolio", async (ctx) => {
 
@@ -104,6 +102,7 @@ bot.callbackQuery("Portfolio", async (ctx) => {
 
     let tr_2 = await getTrading(currentAddress, 2);
     console.log(`tr_2::`, tr_2);
+
     let tr_3 = await getTrading(currentAddress, 3);
     console.log(`tr_3::`, tr_3);
 
