@@ -13,8 +13,6 @@ import fs from 'fs';
 const provider = new ethers.providers.JsonRpcProvider(`https://rpc.lokibuilder.xyz/wallet`);
 const ethcallProvider = new Provider(provider);
 
-let address = '0xF0FC8D0E77b45293D14Da639d363EEcDF8fD800E';
-
 dotenv.config();
 
 let currentAddress = '';
@@ -72,9 +70,6 @@ bot.on("message:text", async (ctx) => {
 
     bot.api.deleteMessage(ctx.chat.id, msgId.message_id);
 
-    // console.log(`tr_2.totalProfit::`, tr_2.totalProfit)
-    // console.log(`tr_3.totalProfit::`, tr_3.totalProfit)
-
     let message = '\n\n';
     message = message + `\n\n<b>📈 Monthly Profit</b>: ${(tr_2.totalProfit + tr_3.totalProfit).toFixed(3)}ETH\n\n`
     message = message + `<b>⚖️ Balance </b>: $${result.sumUsd.toFixed(3)}\n\n`
@@ -112,27 +107,33 @@ bot.callbackQuery("Portfolio", async (ctx) => {
     message = message + `<b>💰Your total balance: $${result.sumUsd.toFixed(3)}</b>\n\n`
     message = message + `<b>ETH: ${result.ethBalance.toFixed(3)}</b>\n\n\n`
     message = message + `<b>Open Positions📌</b>\n\n`
-
+    
     message = message + `<b>Uniswap V2 🦄</b>\n\n`
 
     if (Object.entries(tr_2.positions).length > 0) {
+
         Object.entries(tr_2.positions).slice(0, 10).map((item) => {
             message = message + `\n\n<b>🏦 Token: ${item[0]}</b>\n`
             message = message + `<b>🎒Amount: ${item[1].balance}</b>\n`
             message = message + `<b>💰Buy at price: ${item[1].avg.toFixed(9)} ETH</b>\n`
             message = message + `<b>⏰Holding time: ${holdingTime(new Date().getTime() / 1000 - Number(item[1].open_time))}</b>\n`
         })
+    } else {
+        message = message + `\n\n<b>🏦 You have no trade in 30 days.</b>\n`
     }
 
     message = message + `\n\n<b>Uniswap V3 🦄</b>\n\n`
 
     if (Object.entries(tr_3.positions).length > 0) {
+
         Object.entries(tr_3.positions).slice(0, 10).map((item) => {
             message = message + `\n\n<b>🏦 Token: ${item[0]}</b>\n`
             message = message + `<b>🎒Amount: ${item[1].balance}</b>\n`
             message = message + `<b>💰Buy at price: ${item[1].avg.toFixed(9)} ETH</b>\n`
             message = message + `<b>⏰Holding time: ${holdingTime(new Date().getTime() / 1000 - Number(item[1].open_time))}</b>\n`
         })
+    } else {
+        message = message + `\n\n<b>🏦 You have no trade in 30 days.</b>\n`
     }
 
     ctx.reply(message, {
@@ -167,9 +168,11 @@ bot.callbackQuery("Insights", async (ctx) => {
         message = `\n\nYou don't have any trading with Uniswap 🦄.\n\n`;
 
     } else {
-
+        
+        message = message + `<b>Uniswap V2 🦄</b>\n\n`;
+        
         if (tr_2.totalTrades != 0) {
-            message = message + `<b>Uniswap V2 🦄</b>\n\n`;
+            
             message = message + `<b>📉 Total Profit</b> : ${tr_2.totalProfit.toFixed(3)}ETH\n`;
             message = message + `<b>📊 ROI</b> : ${(tr_2.totalProfit_roi * 100).toFixed(0)}%\n`;
             message = message + `<b>🏆 Win rate</b> : ${(tr_2.winRate).toFixed(0)}%\n`;
@@ -188,10 +191,14 @@ bot.callbackQuery("Insights", async (ctx) => {
             if (tr_2.mostf) {
                 message = message + `\n\n💕 <b>Most Traded Asset</b> : You traded ${tr_2.mostf.symbol} the most frequently, with a total of ${tr_2.mostf.count} trades this month.\n\n`;
             }
+        } else {
+            message = message + `\n\n<b>🏦 You have no trade in 30 days.</b>\n`
         }
-
+        
+        message = message + `<b>Uniswap V3 🦄</b>\n\n`;
+        
         if (tr_3.totalTrades != 0) {
-            message = message + `<b>Uniswap V3 🦄</b>\n\n`;
+            
             message = message + `<b>📉 Total Profit</b> : ${tr_3.totalProfit.toFixed(3)}ETH\n`;
             message = message + `<b>📊 ROI</b> : ${(tr_3.totalProfit_roi * 100).toFixed(0)}%\n`;
             message = message + `<b>🏆 Win rate</b> : ${(tr_3.winRate).toFixed(0)}%\n`;
@@ -210,6 +217,8 @@ bot.callbackQuery("Insights", async (ctx) => {
             if (tr_3.mostf) {
                 message = message + `\n\n💕 <b>Most Traded Asset</b> : You traded ${tr_3.mostf.symbol} the most frequently, with a total of ${tr_3.mostf.count} trades this month.\n\n`;
             }
+        } else {
+            message = message + `\n\n<b>🏦 You have no trade in 30 days.</b>\n`
         }
 
     }
@@ -253,6 +262,8 @@ bot.callbackQuery("Trade", async (ctx) => {
             message = message + `<b>📊Current PNL: ${item.profit.toFixed(6)} ETH</b>\n`
             message = message + `<b>⏰Holding time: ${holdingTime(Number(item.close_time) - Number(item.open_time))}</b>\n`
         })
+    } else {
+        message = message + `\n\n<b>🏦 You have no trade in 30 days.</b>\n`
     }
 
     message = message + `\n\n<b>Uniswap V3 🦄</b>\n\n`
@@ -266,6 +277,8 @@ bot.callbackQuery("Trade", async (ctx) => {
             message = message + `<b>📊Current PNL: ${item.profit.toFixed(6)} ETH</b>\n`
             message = message + `<b>⏰Holding time: ${holdingTime(Number(item.close_time) - Number(item.open_time))}</b>\n`
         })
+    } else {
+        message = message + `\n\n<b>🏦 You have no trade in 30 days.</b>\n`
     }
 
 

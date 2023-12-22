@@ -351,8 +351,6 @@ const get_portfolio = async (address) => {
             }
         })
 
-
-
         const options = {
             method: 'POST',
             headers: {
@@ -368,16 +366,12 @@ const get_portfolio = async (address) => {
         let res = await fetch('https://deep-index.moralis.io/api/v2.2/erc20/prices?chain=eth&include=percent_change', options)
         let priceList = await res.json();
 
-        
-
         tokenList.forEach((item, key) => {
             tokenListFinal.push({
                 ...item,
                 amount: (Number(formatUnits(BigInt(item.balance), item.decimals)) * (priceList[key]  ? priceList[key].usdPrice : 0 ))
             })
         })
-
-        // console.log(`tokenList::`, tokenList)
 
         /**
          *  get Eth balace of wallet
@@ -425,7 +419,6 @@ const getTrading = async (trader_address, version) => {
         books = await getSwapV3(trader_address);
     }
 
-
     let tokens = {}
     let positions = {},
         trades = [],
@@ -442,31 +435,6 @@ const getTrading = async (trader_address, version) => {
         let tradingAmount, usdAmount, ethAmount, side, rate, base_symbol, symbol_name, ethRate, position;
         usdAmount = Number(tr.amountUSD);
 
-        // if (version == 2) {
-        //     base_symbol = tr.pair.token0.id.toLowerCase() != weth ? tr.pair.token0.id : tr.pair.token1.id;
-        //     symbol_name = tr.pair.token0.id.toLowerCase() != weth ? tr.pair.token0.symbol : tr.pair.token1.symbol;
-        //     if (tr.pair.token0.id.toLowerCase() == base_symbol) {//token0
-        //         if (tr.amount0In > 0) {
-        //             side = 'sell';
-        //             tradingAmount = tr.amount0In;
-        //             ethAmount = tr.amount1Out;
-        //         } else {
-        //             side = 'buy';
-        //             tradingAmount = tr.amount0Out;
-        //             ethAmount = tr.amount1In;
-        //         }
-        //     } else {//token1
-        //         if (tr.amount1In > 0) {
-        //             side = 'sell';
-        //             tradingAmount = tr.amount1In;
-        //             ethAmount = tr.amount0Out;
-        //         } else {
-        //             side = 'buy';
-        //             tradingAmount = tr.amount1Out;
-        //             ethAmount = tr.amount0In;
-        //         }
-        //     }
-        // }
         if (version == 2) {
 
             base_symbol = tr.pair.token0.id.toLowerCase() != weth ? tr.pair.token0.id : tr.pair.token1.id;
@@ -528,13 +496,6 @@ const getTrading = async (trader_address, version) => {
 
         position = positions[symbol_name]
 
-        if (symbol_name == "PEER") {
-            console.log(`position::`, positions[symbol_name])
-        }
-
-        // console.log(`${i}::::: ${side}:::: ${ethAmount}::: ${tradingAmount} ::: ${rate} :::`);
-        // console.log(`${tr.amount0In}::::: ${tr.amount0Out}:::: ${tr.amount1In}::: ${tr.amount1Out} ::`);
-
         if (stable_coin[base_symbol]) continue;
 
         if (side == "buy") {
@@ -559,11 +520,7 @@ const getTrading = async (trader_address, version) => {
 
         }
         else {
-            if (symbol_name == "PEER") {
-                console.log(`sell position::`, positions[base_symbol])
-            }
             if (position?.balance && position?.balance > tradingAmount) {
-                console.log(`not here???`);
                 const open_price = position.avg;
                 const open_time = position.open_time
                 const close_time = tr.timestamp
